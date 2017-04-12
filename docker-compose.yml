@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  elasticsearch:
+    image: elasticsearch:latest
+    restart: always
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - $PWD/elasticsearch1:/usr/share/elasticsearch/data
+    networks:
+      elk:
+        aliases:
+          - elasticsearch.elk
+
+  logstash:
+    image: logstash:latest
+    restart: always
+    depends_on: 
+      - elasticsearch
+    # command: logstash -e 'input { tcp { port => 5000 } } output { elasticsearch { hosts => "elasticsearch.elk:9200" } }'
+    command: logstash -f /opt/logstash/conf.d/logstash.conf
+    volumes:
+      - $PWD/logstash.conf:/opt/logstash/conf.d/logstash.conf
+    ports:
+      - "5000:5000"
+    networks:
+      - elk
+
+  kibana:
+    image: kibana
+    restart: always
+    depends_on: 
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch.elk:9200
+    networks:
+      - elk
+
+networks:
+  elk:
